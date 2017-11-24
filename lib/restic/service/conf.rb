@@ -34,7 +34,8 @@ module Restic
 
             TARGET_CLASS_FROM_TYPE = Hash[
                 'restic-b2' => Targets::ResticB2,
-                'restic-sftp' => Targets::ResticSFTP]
+                'restic-sftp' => Targets::ResticSFTP,
+                'rclone-b2' => Targets::RcloneB2]
 
             TOOLS = %w{restic rclone}
 
