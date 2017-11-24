@@ -3,7 +3,7 @@ require 'restic/service'
 
 module Restic
     module Service
-        DEFAULT_CONF = "/etc/restic-service/conf.yml"
+        DEFAULT_CONF = "/etc/restic-service"
 
         class CLI < Thor
             class_option :conf, desc: "path to the configuration file (#{DEFAULT_CONF})",
