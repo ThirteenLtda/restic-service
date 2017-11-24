@@ -65,6 +65,27 @@ module Restic
                     YAML.dump(yaml, io)
                 end
             end
+
+            desc 'auto', 'periodically runs the backups'
+            def auto
+                ssh = SSHKeys.new
+                conf = load_conf
+                STDOUT.sync = true
+                loop do
+                    conf.each_target do |target|
+                        puts target.name
+                        actual_keys = ssh.query_keys(target.host)
+                        if !target.valid?(actual_keys)
+                            puts "#{target.name} is not available"
+                            next
+                        end
+
+                        puts "Synchronizing #{target.name}"
+                        target.run(conf.restic_path)
+                    end
+                    sleep conf.period
+                end
+            end
         end
     end
 end
