@@ -2,4 +2,8 @@
 
 require 'restic/service/cli'
 
-Restic::Service::CLI.start(ARGV)
+begin
+    Restic::Service::CLI.start(ARGV)
+rescue Interrupt
+    STDERR.puts "Interrupted"
+end
