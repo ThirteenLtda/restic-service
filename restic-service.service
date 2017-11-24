@@ -1,0 +1,9 @@
+[Unit]
+Description=service that uses restic to periodically snapshot and backup
+
+[Service]
+Type=simple
+ExecStart=/opt/restic-service/bin/restic-service run
+
+[Install]
+WantedBy=default.target
