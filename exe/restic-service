@@ -1,0 +1,5 @@
+#! /usr/bin/env ruby
+
+require 'restic/service/cli'
+
+Restic::Service::CLI.start(ARGV)
