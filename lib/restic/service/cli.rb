@@ -23,46 +23,18 @@ module Restic
                 end
 
                 def load_conf
-                    conf = Conf.load(conf_file_path)
-                    conf.load_keys_from_disk(conf_keys_path)
-                    conf
+                    Conf.load(conf_file_path)
                 end
             end
 
-            desc 'whereami', 'finds the available backup servers'
+            desc 'available-targets', 'finds the available backup targets'
             def whereami
                 ssh = SSHKeys.new
                 STDOUT.sync = true
                 conf = load_conf
                 conf.each_target do |target|
                     print "#{target.name}: "
-                    actual_keys = ssh.query_keys(target.host)
-                    if target.valid?(actual_keys)
-                        puts "yes"
-                    else
-                        puts "no"
-                    end
-                end
-            end
-
-            desc 'add-target NAME HOST', 'adds a target to the configuration'
-            def add_target(name, host)
-                ssh = SSHKeys.new
-                keys = ssh.ssh_keyscan_host(host)
-                conf_keys_path.mkpath
-                (conf_keys_path + "#{name}.keys").open('w') do |io|
-                    io.write keys
-                end
-
-                if conf_file_path.file?
-                    yaml = YAML.load(conf_file_path.read)
-                else yaml = Hash.new
-                end
-                yaml['targets'] ||= Array.new
-                yaml['targets'].delete_if { |t| t['name'] == name }
-                yaml['targets'] << Hash['name' => name, 'host' => host]
-                conf_file_path.open('w') do |io|
-                    YAML.dump(yaml, io)
+                    puts(target.available? ? 'yes' : 'no')
                 end
             end
 
@@ -73,15 +45,13 @@ module Restic
                 STDOUT.sync = true
                 loop do
                     conf.each_target do |target|
-                        puts target.name
-                        actual_keys = ssh.query_keys(target.host)
-                        if !target.valid?(actual_keys)
+                        if !target.available?
                             puts "#{target.name} is not available"
                             next
                         end
 
                         puts "Synchronizing #{target.name}"
-                        target.run(conf.restic_path)
+                        target.run
                     end
                     sleep conf.period
                 end

@@ -1,39 +1,85 @@
-# Restic::Service
+# restic-service
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/restic/service`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
-
-## Installation
-
-Add this line to your application's Gemfile:
-
-```ruby
-gem 'restic-service'
-```
-
-And then execute:
-
-    $ bundle
-
-Or install it yourself as:
-
-    $ gem install restic-service
+A backup service using restic and rclone, meant to be run as a background
+service.
 
 ## Usage
 
-TODO: Write usage instructions here
+`restic-service` expects a YAML configuration file. By default, it is stored in
+`/etc/restic-service/conf.yml`.
 
-## Development
+The template configuration file looks like this:
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake test` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+~~~ yaml
+# The path to the underlying tools
+tools:
+  restic: /opt/restic
+  rclone: /opt/rclone
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+# The targets. The only generic parts of a target definition
+# are the name and type. The rest is target-specific
+targets:
+  - name: a_restic_sftp_target
+    type: restic-sftp
+~~~
+
+## Remote host identification using SSH {#ssh_key_id}
+
+Some target types recognize the remote host based on expected SSH keys.
+Corresponding keys have to be stored locally in the `keys/` subfolder of
+restic-service's configuration folder (i.e. /etc/restic-service/keys/ by
+default). Targets that are recognized this way must have a file named
+`${target_name}.keys`.
+
+This file can be created using ssh's tools with
+
+~~~
+ssh-keyscan -H hostname > /etc/restic-service/keys/targetname.keys
+~~~
+
+## Target type: restic-sftp
+
+The rest-sftp target backs files up using sftp on a remote target. The
+target expects the SFTP authentication to be done [using SSH keys](#ssh_key_id).
+
+The target takes the following arguments:
+
+~~~ yaml
+- name: name_of_target
+  type: restic-sftp
+  # The repo URL. This is authenticated using SSH keys, so there must be a
+  # corresponding keys/name_of_target.keys file in $CONF_DIR/keys
+  host: host
+  # The repo URL
+  repo: sftp:username@host:/path/to/repo
+  # The repository password (encryption password from Restic)
+  password: repo_password
+  # Mandatory, list of paths to backup. Needs at least one
+  includes:
+  - list
+  - of
+  - paths
+  - to
+  - backup
+  # Optional, list of excluded patterns
+  excludes:
+  - list/of/patterns
+  - to/not/backup
+  one_filesystem: false
+  # Optional, the IO class. Defaults to 3 (Idle)
+  io_class: 3
+  # Optional, the IO priority. Unused for IO class 3
+  io_priority: 0
+  # Optional, the CPU priority. Higher gets less CPU
+  cpu_priority: 19
+~~~
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/restic-service.
+Bug reports and pull requests are welcome on GitHub at
+https://github.com/ThirteenLtda/restic-service.
 
 ## License
 
-The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+The gem is available as open source under the terms of the [MIT
+License](https://opensource.org/licenses/MIT).

@@ -7,27 +7,18 @@ module Restic
         #
         # The YAML format is as follows:
         #
-        #   # The path to restic itself, defaults to look for 'restic' in PATH
-        #   restic: restic
-        #   # The polling period in seconds
-        #   period: 3600
-        #   # The IO class for the restic process (default is 'idle' (3), see
-        #   # the ionice manpage)
-        #   io_class: 3
-        #   # The IO priority for the restic process (ignored for the
-        #   # default idle class, see the ionice manpage)
-        #   io_priority: 0
-        #   # The CPU priority for the restic process (default is to give the
-        #   # least amount of CPU)
-        #   cpu_priority: 19
-        #   # The list of targets, add one with the add-target subcommand
-        #   targets:
-        #   - name: name_of_target
-        #     host: hostname_or_ip
+        #   # The path to the underlying tools
+        #   tools:
+        #     restic: /opt/restic
+        #     rclone: /opt/rclone
         #
-        # In addition, each target has an associated file that contains this
-        # target's SSH keys, as returned by ssh-keyscan. This is the only
-        # mechanism used to authentify the targets.
+        #   # The targets. The only generic parts of a target definition
+        #   # are the name and type. The rest is target-specific
+        #   targets:
+        #     - name: a_restic_sftp_target
+        #       type: restic-sftp
+        #
+        # See the README.md for more details about available targets
         class Conf
             # Exception raised when using a target name that does not exist
             class NoSuchTarget < RuntimeError; end
@@ -41,26 +32,43 @@ module Restic
                      'io_class' => 3,
                      'io_priority' => 0,
                      'cpu_priority' => 19,
-                     'restic' => 'restic']
+                     'tools' => Hash.new]
             end
 
-            def self.default_target
-                Hash['includes' => [],
-                     'excludes' => [],
-                     'one_filesystem' => false]
+            TARGET_CLASS_FROM_TYPE = Hash[
+                'restic-sftp' => ResticSFTPTarget]
+
+            TOOLS = %w{restic rclone}
+
+            # Returns the target class that will handle the given target type
+            #
+            # @param [String] type the type as represented in the YAML file
+            def self.target_class_from_type(type)
+                if target_class = TARGET_CLASS_FROM_TYPE[type]
+                    return target_class
+                else
+                    raise InvalidConfigurationFile, "target type #{type} does not exist, available targets: #{TARGET_CLASS_FROM_TYPE.keys.sort.join(", ")}"
+                end
             end
 
             # Normalizes and validates a configuration hash, as stored in YAML
             #
             # @raise [InvalidConfigurationFile]
             def self.normalize_yaml(yaml)
-                yaml = Conf.default_conf.merge(yaml)
+                yaml = default_conf.merge(yaml)
+                TOOLS.each do |tool_name|
+                    yaml['tools'][tool_name] ||= tool_name
+                end
+
                 target_names = Array.new
                 yaml['targets'] = yaml['targets'].map do |target|
                     if !target['name']
                         raise InvalidConfigurationFile, "missing 'name' field in target"
-                    elsif !target['host']
-                        raise InvalidConfigurationFile, "missing 'host' field in target"
+                    end
+
+                    target_class = TARGET_CLASS_FROM_TYPE[target['type']]
+                    if !target_class
+                        raise InvalidConfigurationFile, "target type #{target['type']} does not exist, available targets: #{TARGET_CLASS_FROM_TYPE.keys.sort.join(", ")}"
                     end
 
                     name = target['name'].to_s
@@ -68,8 +76,8 @@ module Restic
                         raise InvalidConfigurationFile, "duplicate target name '#{name}'"
                     end
 
+                    target = target_class.normalize_yaml(target.dup)
                     target['name'] = name
-                    target = default_target.merge(target)
                     target_names << name
                     target
                 end
@@ -83,16 +91,21 @@ module Restic
             # @raise (see normalize_yaml)
             def self.load(path)
                 if !path.file?
-                    return Conf.new
+                    return Conf.new(Pathname.new)
                 end
 
                 yaml = YAML.load(path.read) || Hash.new
                 yaml = normalize_yaml(yaml)
 
-                conf = Conf.new
+                conf = Conf.new(path.dirname)
                 conf.load_from_yaml(yaml)
                 conf
             end
+
+            # The configuration path
+            #
+            # @return [Pathname]
+            attr_reader :conf_path
 
             # The polling period in seconds
             #
@@ -100,15 +113,20 @@ module Restic
             #
             # @return [Integer]
             attr_reader :period
-            # The full path to the restic executable
-            #
-            # @return [Pathname]
-            attr_reader :restic_path
 
-            def initialize
+            def initialize(conf_path)
+                @conf_path = conf_path
                 @targets = Hash.new
-                @period = 3600
-                @restic_path = find_in_path('restic')
+                @period  = 3600
+                @tools   = Hash.new
+                TOOLS.each do |tool_name|
+                    @tools[tool_name] = find_in_path(tool_name)
+                end
+            end
+
+            # The path to the key file for the given target
+            def conf_keys_path_for(target)
+                conf_path.join("keys", "#{target.name}.keys")
             end
 
             # Gets a target configuration
@@ -141,6 +159,22 @@ module Restic
                 end
                 nil
             end
+
+            # Checks whether a given tool is available
+            #
+            # @param [String]
+            # @return [Boolean]
+            def tool_available?(tool_name)
+                @tools.has_key?(tool_name)
+            end
+
+            # The full path of a given tool
+            # 
+            # @param [String]
+            # @return [Pathname]
+            def tool_path(tool_name)
+                @tools.fetch(tool_name)
+            end
             
             # Add the information stored in a YAML-like hash into this
             # configuration
@@ -149,47 +183,38 @@ module Restic
             #   configuration format (see {Conf})
             # @return [void]
             def load_from_yaml(yaml)
-                restic = Pathname.new(yaml['restic'])
-                if restic.relative?
-                    restic = find_in_path(relative = restic)
-                    if !restic
-                        raise InvalidConfigurationFile, "cannot find #{relative} in PATH=#{ENV['PATH']}"
-                    end
-                end
-                @restic_path = restic
-                @period = yaml['period']
+                load_tools_from_yaml(yaml['tools'])
+                @period = Integer(yaml['period'])
 
                 yaml['targets'].each do |yaml_target|
-                    target = Target.new(yaml_target['name'], yaml_target['host'])
-                    target.setup_backup_target(
-                        yaml_target['restic_target'],
-                        yaml_target['restic_password'],
-                        yaml_target['includes'],
-                        excludes: yaml_target['excludes'],
-                        one_filesystem: yaml_target['one_filesystem'])
-
-                    %w{io_class io_priority cpu_priority}.each do |option|
-                        target.send("#{option}=", yaml_target[option] || yaml[option])
-                    end
-
+                    type = yaml_target['type']
+                    target_class = Conf.target_class_from_type(type)
+                    target = target_class.new(yaml_target['name'])
+                    target.setup_from_conf(self, yaml_target)
                     @targets[target.name] = target
                 end
             end
 
-            # Load the SSH keys stored on disk
+            # @api private
             #
-            # @param [Pathname] the path to the directory that contains the
-            #   keys. Key files are expected to be named ${TARGET_NAME}.keys
-            def load_keys_from_disk(path)
-                each_target do |target|
-                    key_path = path + "#{target.name}.keys"
-                    if !key_path.file?
-                        STDERR.puts "No keys for #{target.name}"
+            # Helper for {#load_from_yaml}
+            def load_tools_from_yaml(yaml)
+                TOOLS.each do |tool_name|
+                    tool_path = Pathname.new(yaml[tool_name])
+                    if tool_path.relative?
+                        tool_path = find_in_path(tool_path)
+                        if !tool_path
+                            STDERR.puts "cannot find path to #{tool_name}"
+                        end
+                    end
+                    if tool_path
+                        @tools[tool_name] = tool_path
                     else
-                        target.host_keys = SSHKeys.load_keys_from_file(key_path)
+                        @tools.delete(tool_name)
                     end
                 end
             end
+
         end
     end
 end
