@@ -3,7 +3,7 @@ module Restic
         # The overall service configuration
         #
         # This is the API side of the service configuration. The configuration
-        # is usually stored on disk in YAML and 
+        # is usually stored on disk in YAML and
         #
         # The YAML format is as follows:
         #
@@ -29,14 +29,12 @@ module Restic
             def self.default_conf
                 Hash['targets' => [],
                      'period' => 3600,
-                     'io_class' => 3,
-                     'io_priority' => 0,
-                     'cpu_priority' => 19,
                      'tools' => Hash.new]
             end
 
             TARGET_CLASS_FROM_TYPE = Hash[
-                'restic-sftp' => ResticSFTPTarget]
+                'restic-b2' => Targets::ResticB2,
+                'restic-sftp' => Targets::ResticSFTP]
 
             TOOLS = %w{restic rclone}
 
@@ -91,7 +89,7 @@ module Restic
             # @raise (see normalize_yaml)
             def self.load(path)
                 if !path.file?
-                    return Conf.new(Pathname.new)
+                    return Conf.new(Pathname.new(""))
                 end
 
                 yaml = YAML.load(path.read) || Hash.new
@@ -169,13 +167,13 @@ module Restic
             end
 
             # The full path of a given tool
-            # 
+            #
             # @param [String]
             # @return [Pathname]
             def tool_path(tool_name)
                 @tools.fetch(tool_name)
             end
-            
+
             # Add the information stored in a YAML-like hash into this
             # configuration
             #
@@ -218,4 +216,3 @@ module Restic
         end
     end
 end
-

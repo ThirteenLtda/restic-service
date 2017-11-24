@@ -47,11 +47,52 @@ The target takes the following arguments:
 ~~~ yaml
 - name: name_of_target
   type: restic-sftp
-  # The repo URL. This is authenticated using SSH keys, so there must be a
+  # The repo host. This is authenticated using SSH keys, so there must be a
   # corresponding keys/name_of_target.keys file in $CONF_DIR/keys
   host: host
-  # The repo URL
-  repo: sftp:username@host:/path/to/repo
+  # The username that should be used to connect to the host
+  username: the_user
+  # The repo path on the host
+  path: /
+  # The repository password (encryption password from Restic)
+  password: repo_password
+  # Mandatory, list of paths to backup. Needs at least one
+  includes:
+  - list
+  - of
+  - paths
+  - to
+  - backup
+  # Optional, list of excluded patterns
+  excludes:
+  - list/of/patterns
+  - to/not/backup
+  one_filesystem: false
+  # Optional, the IO class. Defaults to 3 (Idle)
+  io_class: 3
+  # Optional, the IO priority. Unused for IO class 3
+  io_priority: 0
+  # Optional, the CPU priority. Higher gets less CPU
+  cpu_priority: 19
+~~~
+
+## Target type: restic-b2
+
+The rest-b2 target backs files up using sftp on a B2 bucket.
+
+The target takes the following arguments:
+
+~~~ yaml
+- name: name_of_target
+  type: restic-b2
+  # The B2 bucket
+  bucket: mybucket
+  # The path within the bucket
+  path: path
+  # The B2 ID
+  id:
+  # The B2 Key
+  key:
   # The repository password (encryption password from Restic)
   password: repo_password
   # Mandatory, list of paths to backup. Needs at least one
