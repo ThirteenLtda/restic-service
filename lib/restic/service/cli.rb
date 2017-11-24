@@ -44,7 +44,9 @@ module Restic
                 conf = load_conf
                 STDOUT.sync = true
                 loop do
+                    has_target = false
                     conf.each_target do |target|
+                        has_target = true
                         if !target.available?
                             puts "#{target.name} is not available"
                             next
@@ -53,10 +55,12 @@ module Restic
                         puts "Synchronizing #{target.name}"
                         target.run
                     end
+                    if !has_target
+                        STDERR.puts "WARNING: no targets in #{options[:conf]}"
+                    end
                     sleep conf.period
                 end
             end
         end
     end
 end
-
