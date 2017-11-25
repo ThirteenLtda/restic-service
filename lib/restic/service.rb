@@ -1,4 +1,5 @@
 require 'fileutils'
+require "pathname"
 require 'yaml'
 require 'tempfile'
 require "restic/service/version"
