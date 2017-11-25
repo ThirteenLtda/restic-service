@@ -20,8 +20,10 @@ module Restic
                 end
 
                 def self.normalize_yaml(yaml)
-                    if !yaml['host']
-                        raise Conf::InvalidConfigurationFile, "missing 'host' field in target"
+                    %w{host username path password}.each do |required_field|
+                        if !yaml[required_field]
+                            raise Conf::InvalidConfigurationFile, "missing '#{required_field}' field in target"
+                        end
                     end
                     super
                 end
