@@ -172,7 +172,11 @@ module Restic
             # @param [String]
             # @return [Pathname]
             def tool_path(tool_name)
-                @tools.fetch(tool_name)
+                if tool = @tools[tool_name]
+                    tool
+                else
+                    raise ArgumentError, "cound not find '#{tool_name}'"
+                end
             end
 
             # Add the information stored in a YAML-like hash into this
