@@ -58,6 +58,13 @@ module Restic
                 end
             end
 
+            desc 'sync', 'synchronize all (some) targets'
+            def sync(*targets)
+                STDOUT.sync = true
+                conf = load_conf
+                run_sync(conf, *targets)
+            end
+
             desc 'auto', 'periodically runs the backups, pass target names to restrict to these'
             def auto(*targets)
                 STDOUT.sync = true
