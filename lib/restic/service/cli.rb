@@ -25,28 +25,15 @@ module Restic
                 def load_conf
                     Conf.load(conf_file_path)
                 end
-            end
 
-            desc 'available-targets', 'finds the available backup targets'
-            def whereami
-                ssh = SSHKeys.new
-                STDOUT.sync = true
-                conf = load_conf
-                conf.each_target do |target|
-                    print "#{target.name}: "
-                    puts(target.available? ? 'yes' : 'no')
-                end
-            end
-
-            desc 'auto', 'periodically runs the backups'
-            def auto
-                ssh = SSHKeys.new
-                conf = load_conf
-                STDOUT.sync = true
-                loop do
+                def run_sync(conf, *targets)
                     has_target = false
                     conf.each_target do |target|
                         has_target = true
+                        if !targets.empty? && !targets.include?(target.name)
+                            next
+                        end
+
                         if !target.available?
                             puts "#{target.name} is not available"
                             next
@@ -58,6 +45,25 @@ module Restic
                     if !has_target
                         STDERR.puts "WARNING: no targets in #{options[:conf]}"
                     end
+                end
+            end
+
+            desc 'available-targets', 'finds the available backup targets'
+            def whereami
+                STDOUT.sync = true
+                conf = load_conf
+                conf.each_target do |target|
+                    print "#{target.name}: "
+                    puts(target.available? ? 'yes' : 'no')
+                end
+            end
+
+            desc 'auto', 'periodically runs the backups, pass target names to restrict to these'
+            def auto(*targets)
+                STDOUT.sync = true
+                conf = load_conf
+                loop do
+                    run_sync(conf, *targets)
                     sleep conf.period
                 end
             end
