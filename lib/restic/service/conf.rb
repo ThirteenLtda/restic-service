@@ -63,9 +63,11 @@ module Restic
                 yaml['targets'] = yaml['targets'].map do |target|
                     if !target['name']
                         raise InvalidConfigurationFile, "missing 'name' field in target"
+                    elsif !target['type']
+                        raise InvalidConfigurationFile, "missing 'type' field in target"
                     end
 
-                    target_class = TARGET_CLASS_FROM_TYPE[target['type']]
+                    target_class = target_class_from_type(target['type'])
                     if !target_class
                         raise InvalidConfigurationFile, "target type #{target['type']} does not exist, available targets: #{TARGET_CLASS_FROM_TYPE.keys.sort.join(", ")}"
                     end
@@ -75,8 +77,9 @@ module Restic
                         raise InvalidConfigurationFile, "duplicate target name '#{name}'"
                     end
 
-                    target = target_class.normalize_yaml(target.dup)
+                    target = target.dup
                     target['name'] = name
+                    target = target_class.normalize_yaml(target)
                     target_names << name
                     target
                 end
@@ -134,16 +137,21 @@ module Restic
             # @return [Target]
             # @raise NoSuchTarget
             def target_by_name(name)
-                if target = @targets[target_name]
+                if target = @targets[name]
                     target
                 else
-                    raise NoSuchTarget, "no target named #{target_name}"
+                    raise NoSuchTarget, "no target named '#{name}'"
                 end
             end
 
             # Enumerates the targets
             def each_target(&block)
                 @targets.each_value(&block)
+            end
+
+            # Registers a target
+            def register_target(target)
+                @targets[target.name] = target
             end
 
             # @api private
@@ -194,7 +202,7 @@ module Restic
                     target_class = Conf.target_class_from_type(type)
                     target = target_class.new(yaml_target['name'])
                     target.setup_from_conf(self, yaml_target)
-                    @targets[target.name] = target
+                    register_target(target)
                 end
             end
 
@@ -206,18 +214,15 @@ module Restic
                     tool_path = Pathname.new(yaml[tool_name])
                     if tool_path.relative?
                         tool_path = find_in_path(tool_path)
-                        if !tool_path
-                            STDERR.puts "cannot find path to #{tool_name}"
-                        end
                     end
-                    if tool_path
+                    if tool_path && tool_path.file?
                         @tools[tool_name] = tool_path
                     else
+                        STDERR.puts "cannot find path to #{tool_name}"
                         @tools.delete(tool_name)
                     end
                 end
             end
-
         end
     end
 end
