@@ -11,7 +11,7 @@ module Restic
                     e = assert_raises(Conf::InvalidConfigurationFile) do
                         Conf.target_class_from_type("does_not_exist")
                     end
-                    assert_equal "target type does_not_exist does not exist, available targets: restic-b2, restic-sftp",
+                    assert_equal "target type does_not_exist does not exist, available targets: rclone-b2, restic-b2, restic-file, restic-sftp",
                         e.message
                 end
             end
@@ -45,7 +45,7 @@ module Restic
                     e = assert_raises(Conf::InvalidConfigurationFile) do
                         Conf.normalize_yaml('targets' => ['name' => 'test', 'type' => 'does_not_exist'])
                     end
-                    assert_equal "target type does_not_exist does not exist, available targets: restic-b2, restic-sftp",
+                    assert_equal "target type does_not_exist does not exist, available targets: rclone-b2, restic-b2, restic-file, restic-sftp",
                         e.message
                 end
                 it "validates that targets do not have duplicate names" do
