@@ -25,7 +25,7 @@ module Restic
                 end
 
                 def setup_from_conf(conf, yaml)
-                    super if defined? super
+                    super
 
                     @bucket = yaml['bucket']
                     @path   = yaml['path']

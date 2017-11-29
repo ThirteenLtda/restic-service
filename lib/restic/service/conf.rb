@@ -29,6 +29,7 @@ module Restic
             def self.default_conf
                 Hash['targets' => [],
                      'period' => 3600,
+                     'bandwidth_limit' => nil,
                      'tools' => Hash.new]
             end
 
@@ -117,6 +118,13 @@ module Restic
             # @return [Integer]
             attr_reader :period
 
+            # The bandwidth limit in bytes/s
+            #
+            # Default is nil (none)
+            #
+            # @return [nil,Integer]
+            attr_reader :bandwidth_limit
+
             def initialize(conf_path)
                 @conf_path = conf_path
                 @targets = Hash.new
@@ -124,6 +132,25 @@ module Restic
                 @tools   = Hash.new
                 TOOLS.each do |tool_name|
                     @tools[tool_name] = find_in_path(tool_name)
+                end
+            end
+
+            BANDWIDTH_SCALES = Hash[
+                nil => 1,
+                'k' => 1_000,
+                'm' => 1_000_000,
+                'g' => 1_000_000_000]
+
+            def self.parse_bandwidth_limit(limit)
+                if !limit.respond_to?(:to_str)
+                    return Integer(limit)
+                else
+                    match = /^(\d+)\s*(k|m|g)?$/.match(limit.downcase)
+                    if match
+                        return Integer(match[1]) * BANDWIDTH_SCALES.fetch(match[2])
+                    else
+                        raise ArgumentError, "cannot interpret '#{limit}' as a valid bandwidth limit, give a plain number in bytes or use the k, M and G suffixes"
+                    end
                 end
             end
 
@@ -197,6 +224,9 @@ module Restic
             def load_from_yaml(yaml)
                 load_tools_from_yaml(yaml['tools'])
                 @period = Integer(yaml['period'])
+                @bandwidth_limit = if limit_yaml = yaml['bandwidth_limit']
+                                       Conf.parse_bandwidth_limit(limit_yaml)
+                                   end
 
                 yaml['targets'].each do |yaml_target|
                     type = yaml_target['type']

@@ -4,11 +4,9 @@ module Restic
             # Base class for all restic-based targets
             #
             # See README.md for the YAML configuration file format
-            class Restic
-                attr_reader :name
-
+            class Restic < Base
                 def initialize(name)
-                    @name = name
+                    super
 
                     @password = nil
                     @includes = []
@@ -40,6 +38,8 @@ module Restic
                 end
 
                 def setup_from_conf(conf, yaml)
+                    super
+
                     @restic_path    = conf.tool_path('restic')
                     @password       = yaml['password']
                     @includes       = yaml['includes'] || Array.new
@@ -61,9 +61,14 @@ module Restic
                     if @io_class != 3
                         ionice_args << '-n' << @io_priority.to_s
                     end
+
                     extra_args = []
                     if one_filesystem?
                         extra_args << '--one-file-system'
+                    end
+                    if @bandwidth_limit
+                        limit_KiB = @bandwidth_limit / 1000 
+                        extra_args << '--limit-download' << limit_KiB.to_s << '--limit-upload' << limit_KiB.to_s
                     end
 
                     system(Hash['RESTIC_PASSWORD' => @password].merge(env),

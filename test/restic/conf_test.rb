@@ -16,6 +16,36 @@ module Restic
                 end
             end
 
+            describe ".parse_bandwidth_limit" do
+                it "returns an integer as-is" do
+                    assert_equal 100, Conf.parse_bandwidth_limit(100)
+                end
+                it "parses a plain integer represented as string" do
+                    assert_equal 100, Conf.parse_bandwidth_limit("100")
+                end
+                it "scales a kilobyte value" do
+                    assert_equal 3_000, Conf.parse_bandwidth_limit("3k")
+                end
+                it "scales a megabyte value" do
+                    assert_equal 3_000_000, Conf.parse_bandwidth_limit("3M")
+                end
+                it "scales a gigabyte value" do
+                    assert_equal 3_000_000_000, Conf.parse_bandwidth_limit("3G")
+                end
+                it "raises if the suffix is unknown" do
+                    e = assert_raises(ArgumentError) do
+                        Conf.parse_bandwidth_limit("3B")
+                    end
+                    assert_equal "cannot interpret '3B' as a valid bandwidth limit, give a plain number in bytes or use the k, M and G suffixes", e.message
+                end
+                it "accepts spaces between the value and the suffix" do
+                    assert_equal 3_000_000_000, Conf.parse_bandwidth_limit("3 G")
+                end
+                it "does not take the case of the suffix into account" do
+                    assert_equal 3_000_000_000, Conf.parse_bandwidth_limit("3g")
+                end
+            end
+
             describe "normalize_yaml" do
                 it "does not modify the argument" do
                     Conf.normalize_yaml(h = Hash.new)
@@ -129,6 +159,15 @@ module Restic
                 it "sets the period from the hash" do
                     normalize_and_load_from_yaml('period' => 10)
                     assert_equal 10, @conf.period
+                end
+                it "sets the bandwidth limit to nil if the hash does not set it" do
+                    normalize_and_load_from_yaml(Hash.new)
+                    assert_nil @conf.bandwidth_limit
+                end
+                it "parses the bandwidth limit if the hash has a value" do
+                    flexmock(Conf).should_receive(:parse_bandwidth_limit).with('test').and_return(20)
+                    normalize_and_load_from_yaml('bandwidth_limit' => 'test')
+                    assert_equal 20, @conf.bandwidth_limit
                 end
 
                 it "sets the targets from the hash" do

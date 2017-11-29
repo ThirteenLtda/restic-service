@@ -1,15 +1,8 @@
 module Restic
     module Service
         module Targets
-            class RcloneB2
+            class RcloneB2 < Base
                 include B2
-
-                attr_reader :name
-
-                def initialize(name)
-                    @name = name
-                    super()
-                end
 
                 def self.normalize_yaml(yaml)
                     yaml = B2.normalize_yaml(yaml)
@@ -26,7 +19,6 @@ module Restic
                     @rclone_path = conf.tool_path('rclone')
                     @src = yaml['src']
                     @conf_path = conf.conf_path
-                    @bandwidth_limit = yaml['bandwidth_limit']
                 end
 
                 def run
