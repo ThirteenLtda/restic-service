@@ -29,8 +29,9 @@ module Restic
                 end
 
                 def setup_from_conf(conf, yaml)
-                    key_path   = conf.conf_keys_path_for(self)
-                    @host_keys = SSHKeys.load_keys_from_file(key_path)
+                    @target_name = yaml['name']
+                    @key_path    = conf.conf_keys_path_for(self)
+                    @host_keys = SSHKeys.load_keys_from_file(@key_path)
                     @host      = yaml['host'].to_str
                     @username  = yaml['username'].to_str
                     @path      = yaml['path'].to_str
@@ -43,7 +44,16 @@ module Restic
                 end
 
                 def run
-                    super('-r', "sftp:#{@username}@#{@host}:#{@path}", 'backup')
+                    current_home = ENV['HOME']
+                    ENV['HOME'] = current_home || '/root'
+
+                    ssh = SSHKeys.new
+                    ssh_config_name = ssh.ssh_setup_config(@target_name, @username, @host, @key_path)
+
+                    super('-r', "sftp:#{ssh_config_name}:#{@path}", 'backup')
+                ensure
+                    ssh.ssh_cleanup_config
+                    ENV['HOME'] = current_home
                 end
             end
         end

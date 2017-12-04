@@ -39,7 +39,7 @@ module Restic
                             next
                         end
 
-                        puts "Synchronizing #{target.name}"
+                        puts "#{Time.now} - Synchronizing #{target.name}"
                         target.run
                     end
                     if !has_target

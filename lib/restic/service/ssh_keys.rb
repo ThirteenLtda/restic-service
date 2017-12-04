@@ -68,6 +68,61 @@ t                    raise SSHFailed, "failed to run #{args}"
                 out_pipe_r.close
                 err_pipe_r.close
             end
+
+            def ssh_config_path
+                Pathname.new(Dir.home) + ".ssh" + "config"
+            end
+
+            def ssh_setup_config(target_name, username, hostname, key_file, ssh_config_path: self.ssh_config_path)
+                ssh_config = ssh_cleanup_config(ssh_config_path: ssh_config_path)
+
+                if ssh_config[-1] && ssh_config[-1] != ''
+                    ssh_config << ""
+                end
+                ssh_config_name = "restic-service-host-#{target_name}"
+                ssh_config << "# Added by restic-service"
+                ssh_config << "Host #{ssh_config_name}"
+                ssh_config << "  User #{username}"
+                ssh_config << "  Hostname #{hostname}"
+                ssh_config << "  UserKnownHostsFile #{key_file}"
+
+                ssh_config_path.dirname.mkpath
+                ssh_config_path.dirname.chmod 0700
+                ssh_config_path.open('w') do |io|
+                    io.puts ssh_config.join("\n")
+                end
+                ssh_config_path.chmod 0600
+                ssh_config_name
+            end
+
+            def ssh_cleanup_config(ssh_config_path: self.ssh_config_path)
+                ssh_config =
+                    if ssh_config_path.file?
+                        ssh_config_path.read.split("\n").map(&:chomp)
+                    else
+                        []
+                    end
+
+                _, host_line = ssh_config.each_with_index.
+                    find { |line, line_i| line.start_with?("Host restic-service-host-") }
+                if host_line
+                    ssh_config.delete_at(host_line)
+                    while ssh_config[host_line - 1] && ssh_config[host_line - 1].start_with?("#")
+                        ssh_config.delete_at(host_line - 1)
+                        host_line -= 1
+                    end
+
+                    while ssh_config[host_line] && !ssh_config[host_line].start_with?("Host")
+                        ssh_config.delete_at(host_line)
+                    end
+                end
+                if ssh_config_path.file?
+                    ssh_config_path.open('w') do |io|
+                        io.puts ssh_config.join("\n")
+                    end
+                end
+                ssh_config
+            end
         end
     end
 end
