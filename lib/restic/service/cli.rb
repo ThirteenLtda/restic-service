@@ -39,6 +39,8 @@ module Restic
                             next
                         end
 
+                        puts
+                        puts "-----"
                         puts "#{Time.now} - Synchronizing #{target.name}"
                         target.run
                     end
