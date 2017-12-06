@@ -70,8 +70,14 @@ module Restic
                 STDOUT.sync = true
                 conf = load_conf
                 loop do
+                    puts "#{Time.now} Starting automatic synchronization pass"
+                    puts ""
+
                     run_sync(conf, *targets)
                     sleep conf.period
+
+                    puts ""
+                    puts "#{Time.now} Finished automatic synchronization pass"
                 end
             end
         end
