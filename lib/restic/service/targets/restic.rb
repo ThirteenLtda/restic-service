@@ -51,6 +51,9 @@ module Restic
                 end
 
                 def run(*args)
+                    old_home = ENV['HOME']
+                    ENV['HOME'] = old_home || '/root'
+
                     env = if args.first.kind_of?(Hash)
                               env = args.shift
                           else
@@ -77,6 +80,8 @@ module Restic
                            @restic_path.to_path, *args, *extra_args,
                            *@excludes.flat_map { |e| ['--exclude', e] },
                            *@includes, in: :close)
+                ensure
+                    ENV['HOME'] = old_home
                 end
             end
         end
