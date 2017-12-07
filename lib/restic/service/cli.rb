@@ -76,10 +76,11 @@ module Restic
                     puts ""
 
                     run_sync(conf, *targets)
-                    sleep conf.period
 
                     puts ""
                     puts "#{Time.now} Finished automatic synchronization pass"
+
+                    sleep conf.period
                 end
             end
         end
