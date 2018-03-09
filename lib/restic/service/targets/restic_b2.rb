@@ -13,7 +13,13 @@ module Restic
                 end
 
                 def run
-                    super(Hash['B2_ACCOUNT_ID' => @id, 'B2_ACCOUNT_KEY' => @key], '-r', "b2:#{@bucket}:#{@path}", 'backup')
+                    run_backup(Hash['B2_ACCOUNT_ID' => @id, 'B2_ACCOUNT_KEY' => @key],
+                          '-r', "b2:#{@bucket}:#{@path}", 'backup')
+                end
+
+                def forget
+                    run_forget(Hash['B2_ACCOUNT_ID' => @id, 'B2_ACCOUNT_KEY' => @key],
+                          '-r', "b2:#{@bucket}:#{@path}", 'forget')
                 end
             end
         end

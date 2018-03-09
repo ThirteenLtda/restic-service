@@ -26,26 +26,45 @@ module Restic
                     Conf.load(conf_file_path)
                 end
 
-                def run_sync(conf, *targets)
+                def each_selected_and_available_target(conf, *targets)
                     has_target = false
                     conf.each_target do |target|
                         has_target = true
                         if !targets.empty? && !targets.include?(target.name)
                             next
-                        end
-
-                        if !target.available?
+                        elsif !target.available?
                             puts "#{target.name} is not available"
                             next
                         end
 
+                        yield(target)
+                    end
+
+                    if !has_target
+                        STDERR.puts "WARNING: no targets in #{options[:conf]}"
+                    end
+                end
+
+                def run_sync(conf, *targets)
+                    each_selected_and_available_target(conf, *targets) do |target|
                         puts
                         puts "-----"
                         puts "#{Time.now} - Synchronizing #{target.name}"
                         target.run
                     end
-                    if !has_target
-                        STDERR.puts "WARNING: no targets in #{options[:conf]}"
+                end
+
+                def run_forget(conf, *targets)
+                    each_selected_and_available_target(conf, *targets) do |target|
+                        unless target.respond_to?(:forget)
+                            puts "#{target.name} does not supports forget"
+                            next
+                        end
+
+                        puts
+                        puts "-----"
+                        puts "#{Time.now} - Running forget pass on #{target.name}"
+                        target.forget
                     end
                 end
             end
@@ -67,6 +86,13 @@ module Restic
                 run_sync(conf, *targets)
             end
 
+            desc 'forget', 'delete historical data'
+            def forget(*targets)
+                STDOUT.sync = true
+                conf = load_conf
+                run_forget(conf, *targets)
+            end
+
             desc 'auto', 'periodically runs the backups, pass target names to restrict to these'
             def auto(*targets)
                 STDOUT.sync = true
@@ -76,6 +102,7 @@ module Restic
                     puts ""
 
                     run_sync(conf, *targets)
+                    run_forget(conf, *targets)
 
                     puts ""
                     puts "#{Time.now} Finished automatic synchronization pass"

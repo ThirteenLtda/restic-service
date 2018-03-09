@@ -44,16 +44,21 @@ module Restic
                 end
 
                 def run
-                    current_home = ENV['HOME']
-                    ENV['HOME'] = current_home || '/root'
-
                     ssh = SSHKeys.new
                     ssh_config_name = ssh.ssh_setup_config(@target_name, @username, @host, @key_path)
 
-                    super('-r', "sftp:#{ssh_config_name}:#{@path}", 'backup')
+                    run_backup('-r', "sftp:#{ssh_config_name}:#{@path}", 'backup')
                 ensure
                     ssh.ssh_cleanup_config
-                    ENV['HOME'] = current_home
+                end
+
+                def forget
+                    ssh = SSHKeys.new
+                    ssh_config_name = ssh.ssh_setup_config(@target_name, @username, @host, @key_path)
+
+                    run_forget('-r', "sftp:#{ssh_config_name}:#{@path}", 'forget')
+                ensure
+                    ssh.ssh_cleanup_config
                 end
             end
         end
