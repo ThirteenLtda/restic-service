@@ -79,6 +79,53 @@ module Restic
                 end
             end
 
+            desc 'install-restic PATH PLATFORM', 'install restic'
+            def install_restic(path, platform)
+                updater = AutoUpdate.new($0)
+                updater.update_restic(platform, path)
+            end
+
+            desc 'auto-update', 'perform auto-updating as configured in the configuration file'
+            def auto_update
+                conf = load_conf
+                STDOUT.sync = true
+
+                updater = AutoUpdate.new($0)
+                if conf.auto_update_restic_service?
+                    puts "attempting to auto-update restic-service"
+                    old_version, new_version = updater.update_restic_service
+                    if old_version != new_version
+                        puts "updated restic-service from #{old_version} to #{new_version}, restarting"
+                        exec "bundle", "exec", Gem.ruby, $0, "auto-update"
+                    else
+                        puts "restic-service was already up-to-date: #{new_version}"
+                    end
+                else
+                    puts "updating restic-service disabled in configuration"
+                end
+
+                update_restic = conf.auto_update_restic?
+                if update_restic
+                    begin
+                        restic_path = conf.tool_path('restic')
+                    rescue ArgumentError
+                        puts "cannot auto-update restic, provide an explicit path in the 'tools' section of the configuration first"
+                        update_restic = false
+                    end
+                else
+                    puts "updating restic disabled in configuration"
+                end
+
+                if update_restic
+                    puts "attempting to auto-update restic"
+                    if updater.update_restic(conf.restic_platform, restic_path)
+                        puts "updated restic to version #{AutoUpdate::RESTIC_RELEASE_VERSION}"
+                    else
+                        puts "restic was already up-to-date"
+                    end
+                end
+            end
+
             desc 'sync', 'synchronize all (some) targets'
             def sync(*targets)
                 STDOUT.sync = true

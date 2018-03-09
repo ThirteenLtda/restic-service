@@ -3,6 +3,7 @@ require "pathname"
 require 'yaml'
 require 'tempfile'
 require "restic/service/version"
+require "restic/service/auto_update"
 require "restic/service/targets/base"
 require "restic/service/targets/restic"
 require "restic/service/targets/b2"

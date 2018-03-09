@@ -61,6 +61,8 @@ module Restic
                     yaml['tools'][tool_name] ||= tool_name
                 end
 
+                yaml['auto_update'] ||= Array.new
+
                 target_names = Array.new
                 yaml['targets'] = yaml['targets'].map do |target|
                     if !target['name']
@@ -215,6 +217,18 @@ module Restic
                 end
             end
 
+            def auto_update_restic_service?
+                @auto_update_restic_service
+            end
+
+            def auto_update_restic?
+                @auto_update_restic
+            end
+
+            def restic_platform
+                @auto_update_restic
+            end
+
             # Add the information stored in a YAML-like hash into this
             # configuration
             #
@@ -227,6 +241,14 @@ module Restic
                 @bandwidth_limit = if limit_yaml = yaml['bandwidth_limit']
                                        Conf.parse_bandwidth_limit(limit_yaml)
                                    end
+
+                yaml['auto_update'].each do |update_target, do_update|
+                    if update_target == 'restic-service'
+                        @auto_update_restic_service = do_update
+                    elsif update_target == 'restic'
+                        @auto_update_restic = do_update
+                    end
+                end
 
                 yaml['targets'].each do |yaml_target|
                     type = yaml_target['type']
