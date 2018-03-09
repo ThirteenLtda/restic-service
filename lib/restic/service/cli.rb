@@ -69,7 +69,7 @@ module Restic
                 end
             end
 
-            desc 'available-targets', 'finds the available backup targets'
+            desc 'whereami', 'finds the available backup targets'
             def whereami
                 STDOUT.sync = true
                 conf = load_conf
