@@ -104,7 +104,7 @@ module Restic
                     system(Hash['HOME' => home, 'RESTIC_PASSWORD' => @password].merge(env),
                            'ionice', '-c', @io_class.to_s, *ionice_args,
                            'nice', "-#{@cpu_priority}",
-                           @restic_path.to_path, *args, *extra_args, in: :close, **options)
+                           @restic_path.to_path, "--cleanup-cache", *args, *extra_args, in: :close, **options)
                 end
 
                 def run_forget(*args)
