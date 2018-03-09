@@ -2,6 +2,10 @@
 
 PROGRAM=restic-service
 
+if test "x$1" = "x--systemd"; then
+    systemd=1
+fi
+
 target=`mktemp -d`
 cd $target
 cat > Gemfile <<GEMFILE
@@ -24,7 +28,7 @@ fi
 sudo cp -r . /opt/${PROGRAM}
 sudo chmod go+rX /opt/${PROGRAM}
 
-if test -d /lib/systemd/system; then
+if test "x$systemd" = "x1" && test -d /lib/systemd/system; then
     target_gem=`bundler show ${PROGRAM}`
     sudo cp $target_gem/${PROGRAM}.service /lib/systemd/system
     ( sudo systemctl stop ${PROGRAM}.service
