@@ -70,7 +70,11 @@ t                    raise SSHFailed, "failed to run #{args}"
             end
 
             def ssh_config_path
-                Pathname.new(Dir.home) + ".ssh" + "config"
+                home = begin Dir.home
+                       rescue ArgumentError
+                           '/root'
+                       end
+                Pathname.new(home) + ".ssh" + "config"
             end
 
             def ssh_setup_config(target_name, username, hostname, key_file, ssh_config_path: self.ssh_config_path)
