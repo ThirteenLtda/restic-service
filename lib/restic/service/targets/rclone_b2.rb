@@ -40,6 +40,7 @@ EOCONF
                         system(@rclone_path.to_path,
                             '--transfers', '16',
                             '--config', io.path,
+                            '--delete-during',
                             *@filter.flat_map { |p| ['--filter', p] },
                             *extra_args,
                             'sync', @src, "restic-service:#{@bucket}/#{@path}", in: :close)
