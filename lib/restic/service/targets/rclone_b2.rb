@@ -18,6 +18,7 @@ module Restic
                     super
                     @rclone_path = conf.tool_path('rclone')
                     @src = yaml['src']
+                    @filter = yaml['filter'] || []
                     @conf_path = conf.conf_path
                 end
 
@@ -39,6 +40,7 @@ EOCONF
                         system(@rclone_path.to_path,
                             '--transfers', '16',
                             '--config', io.path,
+                            *@filter.flat_map { |p| ['--filter', p] },
                             *extra_args,
                             'sync', @src, "restic-service:#{@bucket}/#{@path}", in: :close)
                     end
