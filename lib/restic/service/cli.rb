@@ -67,6 +67,22 @@ module Restic
                         target.forget
                     end
                 end
+
+                def auto_update_tool(conf, updater, name, version)
+                    begin
+                        path = conf.tool_path(name, only_if_present: false)
+                    rescue ArgumentError
+                        puts "cannot auto-update #{name}, provide an explicit path in the 'tools' section of the configuration first"
+                        return
+                    end
+
+                    puts "attempting to auto-update #{name}"
+                    if updater.send("update_#{name}", conf.send("#{name}_platform"), path)
+                        puts "updated #{name} to version #{version}"
+                    else
+                        puts "restic was already up-to-date"
+                    end
+                end
             end
 
             desc 'whereami', 'finds the available backup targets'
@@ -104,25 +120,16 @@ module Restic
                     puts "updating restic-service disabled in configuration"
                 end
 
-                update_restic = conf.auto_update_restic?
-                if update_restic
-                    begin
-                        restic_path = conf.tool_path('restic')
-                    rescue ArgumentError
-                        puts "cannot auto-update restic, provide an explicit path in the 'tools' section of the configuration first"
-                        update_restic = false
-                    end
+                if conf.auto_update_restic?
+                    auto_update_tool(conf, updater, 'restic', AutoUpdate::RESTIC_RELEASE_VERSION)
                 else
                     puts "updating restic disabled in configuration"
                 end
 
-                if update_restic
-                    puts "attempting to auto-update restic"
-                    if updater.update_restic(conf.restic_platform, restic_path)
-                        puts "updated restic to version #{AutoUpdate::RESTIC_RELEASE_VERSION}"
-                    else
-                        puts "restic was already up-to-date"
-                    end
+                if conf.auto_update_rclone?
+                    auto_update_tool(conf, updater, 'rclone', AutoUpdate::RCLONE_RELEASE_VERSION)
+                else
+                    puts "updating rclone disabled in configuration"
                 end
             end
 

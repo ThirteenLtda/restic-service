@@ -202,16 +202,17 @@ module Restic
             # @param [String]
             # @return [Boolean]
             def tool_available?(tool_name)
-                @tools.has_key?(tool_name)
+                _, available = @tools[tool_name]
+                available
             end
 
             # The full path of a given tool
             #
             # @param [String]
             # @return [Pathname]
-            def tool_path(tool_name)
+            def tool_path(tool_name, only_if_present: true)
                 if tool = @tools[tool_name]
-                    tool
+                    tool[0] if tool[1] || !only_if_present
                 else
                     raise ArgumentError, "cound not find '#{tool_name}'"
                 end
@@ -227,6 +228,14 @@ module Restic
 
             def restic_platform
                 @auto_update_restic
+            end
+
+            def auto_update_rclone?
+                @auto_update_rclone
+            end
+
+            def rclone_platform
+                @auto_update_rclone
             end
 
             # Add the information stored in a YAML-like hash into this
@@ -247,6 +256,8 @@ module Restic
                         @auto_update_restic_service = do_update
                     elsif update_target == 'restic'
                         @auto_update_restic = do_update
+                    elsif update_target == 'rclone'
+                        @auto_update_rclone = do_update
                     end
                 end
 
@@ -268,12 +279,10 @@ module Restic
                     if tool_path.relative?
                         tool_path = find_in_path(tool_path)
                     end
-                    if tool_path && tool_path.file?
-                        @tools[tool_name] = tool_path
-                    else
-                        STDERR.puts "cannot find path to #{tool_name}"
-                        @tools.delete(tool_name)
-                    end
+
+                    exists = tool_path.file?
+                    STDERR.puts "#{tool_path} does not exist" unless exists
+                    @tools[tool_name] = [tool_path, exists]
                 end
             end
         end
