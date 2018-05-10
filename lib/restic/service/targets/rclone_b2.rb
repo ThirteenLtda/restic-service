@@ -19,6 +19,7 @@ module Restic
                     @rclone_path = conf.tool_path('rclone')
                     @src = yaml['src']
                     @filter = yaml['filter'] || []
+                    @verbose = yaml.fetch('verbose', true)
                     @conf_path = conf.conf_path
                 end
 
@@ -26,6 +27,9 @@ module Restic
                     extra_args = []
                     if @bandwidth_limit
                         extra_args << '--bwlimit' << @bandwidth_limit.to_s
+                    end
+                    if @verbose
+                        extra_args << "--verbose"
                     end
 
                     Tempfile.create "rclone-#{@name}", @conf_path.to_path, perm: 0600 do |io|
