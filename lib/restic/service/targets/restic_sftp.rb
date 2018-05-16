@@ -5,18 +5,12 @@ module Restic
             #
             # See README.md for the YAML configuration file format
             class ResticSFTP < Restic
+                include SSHTarget
+
                 def initialize(name)
                     super
-                    @host = nil
                     @username = nil
                     @path = nil
-                    @host_keys = []
-                end
-
-                def available?
-                    ssh = SSHKeys.new
-                    actual_keys = ssh.query_keys(@host)
-                    valid?(actual_keys)
                 end
 
                 def self.normalize_yaml(yaml)
@@ -29,36 +23,24 @@ module Restic
                 end
 
                 def setup_from_conf(conf, yaml)
+                    super
                     @target_name = yaml['name']
-                    @key_path    = conf.conf_keys_path_for(self)
-                    @host_keys = SSHKeys.load_keys_from_file(@key_path)
-                    @host      = yaml['host'].to_str
                     @username  = yaml['username'].to_str
                     @path      = yaml['path'].to_str
                     @password  = yaml['password'].to_str
                     super
                 end
 
-                def valid?(actual_keys)
-                    actual_keys.any? { |k| @host_keys.include?(k) }
-                end
-
                 def run
-                    ssh = SSHKeys.new
-                    ssh_config_name = ssh.ssh_setup_config(@target_name, @username, @host, @key_path)
-
-                    run_backup('-r', "sftp:#{ssh_config_name}:#{@path}", 'backup')
-                ensure
-                    ssh.ssh_cleanup_config
+                    with_ssh_config do |ssh_config_name|
+                        run_backup('-r', "sftp:#{ssh_config_name}:#{@path}", 'backup')
+                    end
                 end
 
                 def forget
-                    ssh = SSHKeys.new
-                    ssh_config_name = ssh.ssh_setup_config(@target_name, @username, @host, @key_path)
-
-                    run_forget('-r', "sftp:#{ssh_config_name}:#{@path}", 'forget')
-                ensure
-                    ssh.ssh_cleanup_config
+                    with_ssh_config do |ssh_config_name|
+                        run_forget('-r', "sftp:#{ssh_config_name}:#{@path}", 'forget')
+                    end
                 end
             end
         end

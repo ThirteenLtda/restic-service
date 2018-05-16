@@ -37,7 +37,8 @@ module Restic
                 'restic-b2' => Targets::ResticB2,
                 'restic-sftp' => Targets::ResticSFTP,
                 'restic-file' => Targets::ResticFile,
-                'rclone-b2' => Targets::RcloneB2]
+                'rclone-b2' => Targets::RcloneB2,
+                'rsync' => Targets::Rsync]
 
             TOOLS = %w{restic rclone}
 
@@ -73,7 +74,8 @@ module Restic
 
                     target_class = target_class_from_type(target['type'])
                     if !target_class
-                        raise InvalidConfigurationFile, "target type #{target['type']} does not exist, available targets: #{TARGET_CLASS_FROM_TYPE.keys.sort.join(", ")}"
+                        raise InvalidConfigurationFile, "target type #{target['type']} does not exist, "\
+                            "available targets: #{TARGET_CLASS_FROM_TYPE.keys.sort.join(", ")}"
                     end
 
                     name = target['name'].to_s

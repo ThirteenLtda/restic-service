@@ -96,14 +96,8 @@ module Restic
                         extra_args << '--limit-download' << limit_KiB.to_s << '--limit-upload' << limit_KiB.to_s
                     end
 
-                    ionice_args = []
-                    if @io_class != 3
-                        ionice_args << '-n' << @io_priority.to_s
-                    end
-
                     system(Hash['HOME' => home, 'RESTIC_PASSWORD' => @password].merge(env),
-                           'ionice', '-c', @io_class.to_s, *ionice_args,
-                           'nice', "-#{@cpu_priority}",
+                           *nice_commands,
                            @restic_path.to_path, "--cleanup-cache", *args, *extra_args, in: :close, **options)
                 end
 
