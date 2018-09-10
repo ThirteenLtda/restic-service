@@ -6,7 +6,7 @@ module Restic
             class FailedUpdate < RuntimeError
             end
 
-            RESTIC_RELEASE_VERSION = "0.8.3"
+            RESTIC_RELEASE_VERSION = "0.9.2"
 
             def self.restic_release_url(platform)
                 "https://github.com/restic/restic/releases/download/v#{RESTIC_RELEASE_VERSION}/restic_#{RESTIC_RELEASE_VERSION}_#{platform}.bz2"
