@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    restic-service (0.4.1)
+    restic-service (0.4.2)
       thor
 
 GEM
@@ -34,4 +34,4 @@ DEPENDENCIES
   restic-service!
 
 BUNDLED WITH
-   1.16.4
+   1.17.1
