@@ -76,6 +76,34 @@ The target takes the following arguments:
   cpu_priority: 19
 ~~~
 
+## Target type: rsync
+
+The rsync target copies files to another machine. It is meant as a way to use
+this other machine to then snapshot and backup using restic-service.
+
+The target takes the following arguments:
+
+~~~ yaml
+- name: name_of_target
+  type: rsync
+  # The source path (as expected by rsync)
+  source: /root/dir/to/backup/
+  # The target path (as expected by rsync)
+  target: /target/dir/for/backup/
+  # Whether rsync should cross filesystem boundaries
+  one_file_system: false
+  # Filter rules (see rsync man page for --filter)
+  filters:
+  # Most common filter rule: exclude some files
+  - exclude *.o
+  # Optional, the IO class. Defaults to 3 (Idle)
+  io_class: 3
+  # Optional, the IO priority. Unused for IO class 3
+  io_priority: 0
+  # Optional, the CPU priority. Higher gets less CPU
+  cpu_priority: 19
+~~~
+
 ## Target type: restic-b2
 
 The rest-b2 target backs files up using sftp on a B2 bucket.
