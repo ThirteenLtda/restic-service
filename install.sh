@@ -13,7 +13,7 @@ source "https://rubygems.org"
 gem '${PROGRAM}'
 GEMFILE
 
-bundler install --binstubs --without development --path vendor --standalone
+bundler install --binstubs --without development --path vendor
 for i in vendor/ruby/*; do
     gem_home_relative=$i
 done
