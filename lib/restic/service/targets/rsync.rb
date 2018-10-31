@@ -38,7 +38,7 @@ module Restic
 
                     with_ssh_config do |ssh_config_name|
                         system(Hash['HOME' => home], *nice_commands,
-                               'rsync', '-a', '--delete-during',
+                               'rsync', '-a', '--delete-during', '--delete-excluded',
                                *@filters.map { |arg| "--filter=#{arg}" },
                                *extra_args, @source, "#{ssh_config_name}:#{@target}")
                     end
