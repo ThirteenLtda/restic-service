@@ -17,9 +17,9 @@ bundler install --binstubs --without development --path vendor
 for i in vendor/ruby/*; do
     gem_home_relative=$i
 done
-GEM_HOME=$PWD/$gem_home_relative gem install bundler --no-document
+gem install bundler --no-document --no-user-install --install-dir $PWD/$gem_home_relative
 for stub in bin/*; do
-    sed -i "/usr.bin.env/a ENV['GEM_HOME']='/opt/restic-service/$gem_home_relative'" $stub
+    sed -i "/usr.bin.env/a Gem.paths = { 'GEM_HOME' => '/opt/restic-service/$gem_home_relative' }" $stub
 done
 
 if test -d /opt/${PROGRAM}; then

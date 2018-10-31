@@ -36,7 +36,7 @@ module Restic
                     entry = File.join(bindir, entry)
                     if File.file?(entry)
                         patched_contents = File.readlines(entry)
-                        patched_contents.insert(1, "ENV['GEM_HOME'] = '#{@gem_home}'\n")
+                        patched_contents.insert(1, "Gem.paths = { 'GEM_HOME' => '#{@gem_home}' }\n")
                         File.open(entry, 'w') do |io|
                             io.write patched_contents.join("")
                         end

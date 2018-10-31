@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    restic-service (0.4.2)
+    restic-service (0.4.3)
       thor
 
 GEM
