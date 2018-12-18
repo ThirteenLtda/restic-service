@@ -68,6 +68,15 @@ module Restic
                     end
                 end
 
+                def run_restic(conf, targets, *args)
+                    each_selected_and_available_target(conf, *targets) do |target|
+                        if target.respond_to?(:run_restic)
+                            puts "Running command for #{target.name}"
+                            target.restic(*args)
+                        end
+                    end
+                end
+
                 def auto_update_tool(conf, updater, name, version)
                     begin
                         path = conf.tool_path(name, only_if_present: false)
@@ -163,6 +172,13 @@ module Restic
 
                     sleep conf.period
                 end
+            end
+
+            desc 'restic', 'run a raw restic command on a given target'
+            option 'targets', desc: 'restrict to these targets', type: :array, default: []
+            def restic(*args)
+                conf = load_conf
+                run_restic(conf, options[:targets], *args)
             end
         end
     end

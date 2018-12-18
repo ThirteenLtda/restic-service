@@ -21,6 +21,11 @@ module Restic
                     run_forget(Hash['B2_ACCOUNT_ID' => @id, 'B2_ACCOUNT_KEY' => @key],
                           '-r', "b2:#{@bucket}:#{@path}", 'forget')
                 end
+
+                def restic(*args)
+                    run_restic(Hash['B2_ACCOUNT_ID' => @id, 'B2_ACCOUNT_KEY' => @key],
+                          '-r', "b2:#{@bucket}:#{@path}", *args)
+                end
             end
         end
     end

@@ -42,6 +42,12 @@ module Restic
                         run_forget('-r', "sftp:#{ssh_config_name}:#{@path}", 'forget')
                     end
                 end
+
+                def restic(*args)
+                    with_ssh_config do |ssh_config_name|
+                        run_restic('-r', "sftp:#{ssh_config_name}:#{@path}", *args)
+                    end
+                end
             end
         end
     end
