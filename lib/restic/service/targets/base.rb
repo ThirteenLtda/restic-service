@@ -40,7 +40,7 @@ module Restic
                     result = []
                     if @io_class
                         result << 'ionice' << '-c' << @io_class.to_s
-                        if @io_priority
+                        if @io_priority && @io_class != 3
                             result << '-n' << @io_priority.to_s
                         end
                     end
