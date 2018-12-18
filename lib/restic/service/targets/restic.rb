@@ -114,7 +114,6 @@ module Restic
                     end
                     if @forget.prune?
                         extra_args << "--prune"
-                        puts "PRUNE"
                     end
                     run_restic(*args, *extra_args)
                 end
